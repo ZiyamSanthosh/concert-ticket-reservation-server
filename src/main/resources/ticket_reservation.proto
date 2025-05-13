@@ -1,0 +1,113 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.example.concertbooking.grpc";
+option java_outer_classname = "TicketReservationProto";
+
+package concertbooking;
+
+import "google/protobuf/empty.proto";
+
+// =========================
+// Concert Service Definition
+// =========================
+service ConcertService {
+    rpc AddConcert(AddConcertRequest) returns (ConcertResponse);
+    rpc UpdateConcert(UpdateConcertRequest) returns (ConcertResponse);
+    rpc CancelConcert(CancelConcertRequest) returns (ConcertResponse);
+    rpc SyncConcert(AddConcertRequest) returns (ConcertResponse);
+    rpc SyncUpdateConcert(UpdateConcertRequest) returns (ConcertResponse);
+    rpc SyncCancelConcert(CancelConcertRequest) returns (ConcertResponse);
+    rpc FetchAllConcerts(google.protobuf.Empty) returns (AllConcertsResponse);
+
+}
+
+// =========================
+// Concert Service Messages
+// =========================
+
+message SeatTier {
+    string tier_name = 1;     // e.g. Regular, VIP
+    int32 total_seats = 2;
+    double price = 3;
+}
+
+message AddConcertRequest {
+    string concert_id = 1;
+    string concert_name = 2;
+    repeated SeatTier seat_tiers = 3;
+    int32 after_party_tickets = 4;
+}
+
+message UpdateConcertRequest {
+    string concert_id = 1;
+    repeated SeatTier seat_tiers = 2;        // Can be updated
+    int32 after_party_tickets = 3;           // Optional update
+}
+
+message CancelConcertRequest {
+    string concert_id = 1;
+}
+
+message ConcertResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message AllConcertsResponse {
+    repeated AddConcertRequest concerts = 1;
+}
+
+
+// =========================
+// Reservation Service Definition
+// =========================
+service ReservationService {
+    rpc ReserveTickets(ReserveRequest) returns (ReservationResponse);
+    rpc CancelReservation(CancelReservationRequest) returns (ReservationResponse);
+    rpc GetAvailability(AvailabilityRequest) returns (AvailabilityResponse);
+    rpc ReserveWithAfterParty (ReserveRequest) returns (ReservationResponse);
+    rpc SyncReservation(ReserveRequest) returns (ReservationResponse);
+    rpc SyncCancelReservation(CancelReservationRequest) returns (ReservationResponse);
+    rpc FetchAllReservations(google.protobuf.Empty) returns (AllReservationsResponse);
+}
+
+// =========================
+// Reservation Messages
+// =========================
+
+message ReserveRequest {
+    string concert_id = 1;
+    string user_id = 2;
+    string seat_tier = 3;         // e.g., "VIP", "Regular"
+    bool include_after_party = 4; // true if customer wants both
+    int32 number_of_tickets = 5;
+}
+
+message CancelReservationRequest {
+    string concert_id = 1;
+    string user_id = 2;
+}
+
+message ReservationResponse {
+    bool success = 1;
+    string message = 2;
+}
+
+message AvailabilityRequest {
+    string concert_id = 1;
+}
+
+message AvailabilityResponse {
+    repeated TierAvailability seat_tiers = 1;
+    int32 after_party_tickets_available = 2;
+}
+
+message TierAvailability {
+    string tier_name = 1;
+    int32 available = 2;
+}
+
+message AllReservationsResponse {
+    repeated ReserveRequest reservations = 1;
+}
