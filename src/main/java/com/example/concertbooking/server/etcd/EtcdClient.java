@@ -20,7 +20,7 @@ public class EtcdClient {
     private final String etcdUrl;
 
     public EtcdClient(String etcdUrl) {
-        this.etcdUrl = etcdUrl; // e.g., "http://localhost:2379"
+        this.etcdUrl = etcdUrl;
     }
 
     public void registerNode(String nodeId, String address) {
@@ -33,8 +33,8 @@ public class EtcdClient {
             conn.setDoOutput(true);
 
             JSONObject body = new JSONObject();
-            body.put("key", base64(nodeId));        // e.g., /concert_nodes/node-50051
-            body.put("value", base64(address));     // e.g., localhost:50051
+            body.put("key", base64(nodeId));
+            body.put("value", base64(address));
 
             try (OutputStream os = conn.getOutputStream()) {
                 byte[] input = body.toString().getBytes(StandardCharsets.UTF_8);
@@ -43,14 +43,14 @@ public class EtcdClient {
 
             int responseCode = conn.getResponseCode();
             if (responseCode == 200) {
-                System.out.println("✅ Registered node with etcd: " + nodeId);
+                System.out.println("Registered node with etcd: " + nodeId);
             } else {
-                System.out.println("❌ etcd registration failed: HTTP " + responseCode);
+                System.out.println("etcd registration failed: HTTP " + responseCode);
             }
 
             conn.disconnect();
         } catch (Exception e) {
-            System.out.println("❌ etcd error: " + e.getMessage());
+            System.out.println("etcd error: " + e.getMessage());
         }
     }
 
@@ -60,7 +60,7 @@ public class EtcdClient {
             String leaseId = grantLease(10);
 
             if (leaseId == null) {
-                System.out.println("❌ Failed to obtain lease from etcd");
+                System.out.println("Failed to obtain lease from etcd");
                 return;
             }
 
@@ -81,9 +81,9 @@ public class EtcdClient {
             }
 
             if (conn.getResponseCode() == 200) {
-                System.out.println("✅ Registered node with etcd: " + nodeId + " (with lease)");
+                System.out.println("Registered node with etcd: " + nodeId + " (with lease)");
             } else {
-                System.out.println("❌ etcd registration failed: HTTP " + conn.getResponseCode());
+                System.out.println("etcd registration failed: HTTP " + conn.getResponseCode());
             }
 
             conn.disconnect();
@@ -97,6 +97,7 @@ public class EtcdClient {
     }
 
     public List<String> getRegisteredNodes() {
+
         List<String> nodes = new ArrayList<>();
         try {
             URL url = new URL(etcdUrl + "/v3/kv/range");
@@ -133,7 +134,7 @@ public class EtcdClient {
 
             conn.disconnect();
         } catch (Exception e) {
-            System.out.println("❌ etcd fetch error: " + e.getMessage());
+            System.out.println("etcd fetch error: " + e.getMessage());
         }
 
         return nodes;
@@ -183,7 +184,7 @@ public class EtcdClient {
                 conn.getInputStream().close();
                 conn.disconnect();
             } catch (Exception e) {
-                System.out.println("⚠️ Keepalive failed: " + e.getMessage());
+                System.out.println("⚠Keepalive failed: " + e.getMessage());
             }
         }, 0, 5, TimeUnit.SECONDS); // ping every 5s
     }

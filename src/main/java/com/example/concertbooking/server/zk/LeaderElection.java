@@ -46,7 +46,7 @@ public class LeaderElection {
 
         if (index == 0) {
             this.isLeader = true;
-            System.out.println("👑 This node is the LEADER: " + currentZnodeName);
+            System.out.println("This node is the LEADER: " + currentZnodeName);
 
             // Update the leader znode
             Stat stat = zooKeeper.exists(leaderPath, false);
@@ -69,7 +69,7 @@ public class LeaderElection {
                 }
             });
 
-            System.out.println("🕒 FOLLOWER " + currentZnodeName + " watching " + watchNode);
+            System.out.println("FOLLOWER " + currentZnodeName + " watching " + watchNode);
         }
     }
 

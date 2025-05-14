@@ -19,7 +19,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationServiceImplBase {
@@ -30,14 +29,6 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
     private final int port;
     private final boolean isLeader;
     private final LeaderElection leaderElection;
-
-//    public ReservationServiceImpl(Map<String, Concert> concertStore, ZooKeeperClient zkClient, int port, LeaderElection leaderElection) {
-//        this.concertStore = concertStore;
-//        this.zkClient = zkClient;
-//        this.port = port;
-//        this.isLeader = leaderElection.isLeader();
-//        this.leaderElection = leaderElection;
-//    }
 
     public ReservationServiceImpl(Map<String, Concert> concertStore,
                                   Map<String, Reservation> reservations,
@@ -52,164 +43,6 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
         this.leaderElection = leaderElection;
     }
 
-//    @Override
-//    public void reserveTickets(ReserveRequest request, StreamObserver<ReservationResponse> responseObserver) {
-//        String key = request.getUserId() + "-" + request.getConcertId();
-//        if (reservations.containsKey(key)) {
-//            respond(false, "Reservation already exists", responseObserver);
-//            return;
-//        }
-//
-//        Concert concert = concertStore.get(request.getConcertId());
-//        if (concert == null) {
-//            respond(false, "Concert not found", responseObserver);
-//            return;
-//        }
-//
-//        Concert.SeatTier tier = concert.getSeatTiers().get(request.getSeatTier());
-//        if (tier == null) {
-//            respond(false, "Invalid seat tier", responseObserver);
-//            return;
-//        }
-//
-//        synchronized (concert) {
-//            if (tier.getAvailableSeats() <= 0) {
-//                respond(false, "No seats available in this tier", responseObserver);
-//                return;
-//            }
-//
-//            if (request.getIncludeAfterParty() && concert.getAvailableAfterPartyTickets() <= 0) {
-//                respond(false, "No after-party tickets available", responseObserver);
-//                return;
-//            }
-//
-//            // Update seat count
-//            tier.setAvailableSeats(tier.getAvailableSeats() - 1);
-//            if (request.getIncludeAfterParty()) {
-//                concert.setAvailableAfterPartyTickets(concert.getAvailableAfterPartyTickets() - 1);
-//            }
-//
-//            reservations.put(key, new Reservation(
-//                    request.getUserId(),
-//                    request.getConcertId(),
-//                    request.getSeatTier(),
-//                    request.getIncludeAfterParty()
-//            ));
-//        }
-//
-//        respond(true, "Reservation successful", responseObserver);
-//    }
-
-//    @Override
-//    public void reserveTickets(ReserveRequest request, StreamObserver<ReservationResponse> responseObserver) {
-//
-//        if (!isLeader) {
-//            ManagedChannel channel = null;
-//            try {
-//                String leaderAddress = leaderElection.getLeaderAddress();
-//                if (leaderAddress == null) {
-//                    respond(false, "❌ Leader unavailable. Try again.", responseObserver);
-//                    return;
-//                }
-//
-//                channel = ManagedChannelBuilder.forTarget(leaderAddress)
-//                        .usePlaintext()
-//                        .build();
-//
-//                ReservationServiceGrpc.ReservationServiceBlockingStub stub =
-//                        ReservationServiceGrpc.newBlockingStub(channel);
-//
-//                ReservationResponse response = stub.reserveTickets(request);
-//                channel.shutdown();
-//
-//                responseObserver.onNext(response);
-//                responseObserver.onCompleted();
-//                return;
-//            } catch (Exception ex) {
-//                ex.printStackTrace();
-//                respond(false, "❌ Error forwarding to leader: " + ex.getMessage(), responseObserver);
-//                return;
-//            } finally {
-//                if (channel != null) {
-//                    channel.shutdown(); // 🔐 Always shut down the channel
-//                }
-//            }
-//        }
-//
-//        System.out.println("📡 [Node " + port + "] Handling reserveTickets for ID: " + request.getConcertId());
-//
-//        try {
-//            DistributedLock lock = new DistributedLock(zkClient, request.getConcertId());
-//            lock.acquire();
-//            try {
-//                String key = request.getUserId() + "-" + request.getConcertId();
-//                if (reservations.containsKey(key)) {
-//                    respond(false, "Reservation already exists", responseObserver);
-//                    return;
-//                }
-//
-//                Concert concert = concertStore.get(request.getConcertId());
-//                if (concert == null) {
-//                    respond(false, "Concert not found", responseObserver);
-//                    return;
-//                }
-//
-//                Concert.SeatTier tier = concert.getSeatTiers().get(request.getSeatTier());
-//                if (tier == null) {
-//                    respond(false, "Invalid seat tier", responseObserver);
-//                    return;
-//                }
-//
-//                synchronized (concert) {
-//                    if (tier.getAvailableSeats() <= 0) {
-//                        respond(false, "No seats available in this tier", responseObserver);
-//                        return;
-//                    }
-//
-//                    if (request.getIncludeAfterParty() && concert.getAvailableAfterPartyTickets() <= 0) {
-//                        respond(false, "No after-party tickets available", responseObserver);
-//                        return;
-//                    }
-//
-//                    // Update seat count
-//                    tier.setAvailableSeats(tier.getAvailableSeats() - 1);
-//                    if (request.getIncludeAfterParty()) {
-//                        concert.setAvailableAfterPartyTickets(concert.getAvailableAfterPartyTickets() - 1);
-//                    }
-//
-//                    reservations.put(key, new Reservation(
-//                            request.getUserId(),
-//                            request.getConcertId(),
-//                            request.getSeatTier(),
-//                            request.getIncludeAfterParty()
-//                    ));
-//                }
-//
-//                respond(true, "Reservation successful", responseObserver);
-//
-//                List<String> followers = EtcdHelper.getOtherNodes("http://localhost:2379", port);
-//                for (String follower : followers) {
-//                    try {
-//                        ManagedChannel ch = ManagedChannelBuilder.forTarget(follower)
-//                                .usePlaintext().build();
-//                        ReservationServiceGrpc.ReservationServiceBlockingStub stub = ReservationServiceGrpc.newBlockingStub(ch);
-//                        stub.syncReservation(request);
-//                        ch.shutdown();
-//                        System.out.println("📡 Synced reservation to: " + follower);
-//                    } catch (Exception e) {
-//                        System.err.println("⚠️ Reservation sync failed to: " + follower + " → " + e.getMessage());
-//                    }
-//                }
-//
-//            } finally {
-//                lock.release();
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            respond(false, "ZooKeeper lock error: " + e.getMessage(), responseObserver);
-//        }
-//    }
-
     @Override
     public void reserveTickets(ReserveRequest request, StreamObserver<ReservationResponse> responseObserver) {
 
@@ -218,16 +51,16 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
             try {
                 leaderAddress = leaderElection.getLeaderAddress();
                 if (!isReachable(leaderAddress)) {
-                    respond(false, "❌ Leader is not reachable. Try again later.", responseObserver);
+                    respond(false, "Leader is not reachable. Try again later.", responseObserver);
                     return;
                 }
             } catch (Exception e) {
-                respond(false, "❌ Error fetching leader address: " + e.getMessage(), responseObserver);
+                respond(false, "Error fetching leader address: " + e.getMessage(), responseObserver);
                 return;
             }
 
             if (leaderAddress == null) {
-                respond(false, "❌ Leader unavailable. Try again.", responseObserver);
+                respond(false, "Leader unavailable. Try again.", responseObserver);
                 return;
             }
 
@@ -250,10 +83,10 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
                     responseObserver.onCompleted();
                     forwarded = true;
                 } catch (Exception ex) {
-                    System.err.println("⚠️ Attempt " + (attempt + 1) + " to forward to leader failed: " + ex.getMessage());
+                    System.err.println("Attempt " + (attempt + 1) + " to forward to leader failed: " + ex.getMessage());
                     attempt++;
                     if (attempt == maxRetries) {
-                        respond(false, "❌ Could not reach leader after " + maxRetries + " attempts.", responseObserver);
+                        respond(false, "Could not reach leader after " + maxRetries + " attempts.", responseObserver);
                     }
                 } finally {
                     if (channel != null) {
@@ -271,8 +104,8 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
             return;
         }
 
-        // ✅ Leader node handles reservation
-        System.out.println("📡 [Node " + port + "] Handling reserveTickets for ID: " + request.getConcertId());
+        // Leader node handles reservation
+        System.out.println("[Node " + port + "] Handling reserveTickets for ID: " + request.getConcertId());
 
         try {
             DistributedLock lock = new DistributedLock(zkClient, request.getConcertId());
@@ -322,7 +155,7 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
 
                 respond(true, "Reservation successful", responseObserver);
 
-                // 🔄 Sync to followers
+                // Sync to followers
                 List<String> followers = EtcdHelper.getOtherNodes("http://localhost:2379", port);
                 for (String follower : followers) {
                     ManagedChannel ch = null;
@@ -331,9 +164,9 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
                                 .usePlaintext().build();
                         ReservationServiceGrpc.ReservationServiceBlockingStub stub = ReservationServiceGrpc.newBlockingStub(ch);
                         stub.syncReservation(request);
-                        System.out.println("📡 Synced reservation to: " + follower);
+                        System.out.println("Synced reservation to: " + follower);
                     } catch (Exception e) {
-                        System.err.println("⚠️ Reservation sync failed to: " + follower + " → " + e.getMessage());
+                        System.err.println("Reservation sync failed to: " + follower + " → " + e.getMessage());
                     } finally {
                         if (ch != null) {
                             ch.shutdown();
@@ -358,33 +191,6 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
         }
     }
 
-
-//    @Override
-//    public void cancelReservation(CancelReservationRequest request, StreamObserver<ReservationResponse> responseObserver) {
-//        String key = request.getUserId() + "-" + request.getConcertId();
-//        Reservation reservation = reservations.remove(key);
-//
-//        if (reservation == null) {
-//            respond(false, "No such reservation found", responseObserver);
-//            return;
-//        }
-//
-//        Concert concert = concertStore.get(request.getConcertId());
-//        if (concert != null) {
-//            synchronized (concert) {
-//                Concert.SeatTier tier = concert.getSeatTiers().get(reservation.getSeatTier());
-//                if (tier != null) {
-//                    tier.setAvailableSeats(tier.getAvailableSeats() + 1);
-//                }
-//                if (reservation.isAfterParty()) {
-//                    concert.setAvailableAfterPartyTickets(concert.getAvailableAfterPartyTickets() + 1);
-//                }
-//            }
-//        }
-//
-//        respond(true, "Reservation canceled", responseObserver);
-//    }
-
     @Override
     public void cancelReservation(CancelReservationRequest request, StreamObserver<ReservationResponse> responseObserver) {
 
@@ -393,7 +199,7 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
             try {
                 String leaderAddress = leaderElection.getLeaderAddress();
                 if (leaderAddress == null) {
-                    respond(false, "❌ Leader unavailable. Try again.", responseObserver);
+                    respond(false, "Leader unavailable. Try again.", responseObserver);
                     return;
                 }
 
@@ -412,16 +218,16 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
                 return;
             } catch (Exception ex) {
                 ex.printStackTrace();
-                respond(false, "❌ Error forwarding to leader: " + ex.getMessage(), responseObserver);
+                respond(false, "Error forwarding to leader: " + ex.getMessage(), responseObserver);
                 return;
             } finally {
                 if (channel != null) {
-                    channel.shutdown(); // 🔐 Always shut down the channel
+                    channel.shutdown();
                 }
             }
         }
 
-        System.out.println("📡 [Node " + port + "] Handling cancelReservation for ID: " + request.getConcertId());
+        System.out.println("[Node " + port + "] Handling cancelReservation for ID: " + request.getConcertId());
 
         try {
             DistributedLock lock = new DistributedLock(zkClient, request.getConcertId());
@@ -458,9 +264,9 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
                         ReservationServiceGrpc.ReservationServiceBlockingStub stub = ReservationServiceGrpc.newBlockingStub(ch);
                         stub.syncCancelReservation(request);
                         ch.shutdown();
-                        System.out.println("📡 Synced cancel to: " + follower);
+                        System.out.println("Synced cancel to: " + follower);
                     } catch (Exception e) {
-                        System.err.println("⚠️ Cancel sync failed to: " + follower + " → " + e.getMessage());
+                        System.err.println("Cancel sync failed to: " + follower + " → " + e.getMessage());
                     }
                 }
 
@@ -477,7 +283,7 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
     @Override
     public void getAvailability(AvailabilityRequest request, StreamObserver<AvailabilityResponse> responseObserver) {
 
-        System.out.println("📡 [Node " + port + "] Handling getAvailability for ID: " + request.getConcertId());
+        System.out.println("[Node " + port + "] Handling getAvailability for ID: " + request.getConcertId());
 
         Concert concert = concertStore.get(request.getConcertId());
         if (concert == null) {
@@ -500,85 +306,6 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
         responseObserver.onCompleted();
     }
 
-//    @Override
-//    public void reserveWithAfterParty(ReserveRequest request, StreamObserver<ReservationResponse> responseObserver) {
-//
-//        if (!isLeader) {
-//            ManagedChannel channel = null;
-//            try {
-//                String leaderAddress = leaderElection.getLeaderAddress();
-//                if (leaderAddress == null) {
-//                    respond(false, "❌ Leader unavailable. Try again.", responseObserver);
-//                    return;
-//                }
-//
-//                channel = ManagedChannelBuilder.forTarget(leaderAddress)
-//                        .usePlaintext()
-//                        .build();
-//
-//                ReservationServiceGrpc.ReservationServiceBlockingStub stub =
-//                        ReservationServiceGrpc.newBlockingStub(channel);
-//
-//                ReservationResponse response = stub.reserveWithAfterParty(request);
-//                channel.shutdown();
-//
-//                responseObserver.onNext(response);
-//                responseObserver.onCompleted();
-//                return;
-//
-//            } catch (Exception ex) {
-//                ex.printStackTrace();
-//                respond(false, "❌ Error forwarding to leader: " + ex.getMessage(), responseObserver);
-//                return;
-//            } finally {
-//                if (channel != null) {
-//                    channel.shutdown(); // 🔐 Always shut down the channel
-//                }
-//            }
-//        }
-//
-//        System.out.println("📡 [Node " + port + "] Handling reserveWithAfterParty for ID: " + request.getConcertId());
-//
-//        String userId = request.getUserId();
-//        String concertId = request.getConcertId();
-//        String seatTier = request.getSeatTier();
-//        int numberOfTickets = request.getNumberOfTickets();  // ✅ NEW
-//
-//        try {
-//            ConcertParticipant concertParticipant = new ConcertParticipant(concertStore);
-//            AfterPartyParticipant afterPartyParticipant = new AfterPartyParticipant(concertStore);
-//
-//            AtomicReservationCoordinator coordinator = new AtomicReservationCoordinator(
-//                    concertParticipant,
-//                    afterPartyParticipant
-//            );
-//
-//            boolean success = coordinator.reserve(userId, concertId, seatTier, numberOfTickets);
-//            if (success) {
-//                List<String> followers = EtcdHelper.getOtherNodes("http://localhost:2379", port);
-//                for (String follower : followers) {
-//                    try {
-//                        ManagedChannel ch = ManagedChannelBuilder.forTarget(follower)
-//                                .usePlaintext().build();
-//                        ReservationServiceGrpc.ReservationServiceBlockingStub stub =
-//                                ReservationServiceGrpc.newBlockingStub(ch);
-//                        stub.syncReservation(request);  // same message type
-//                        ch.shutdown();
-//                        System.out.println("📡 Synced 2PC reservation to: " + follower);
-//                    } catch (Exception e) {
-//                        System.err.println("⚠️ Failed to sync 2PC reservation to " + follower + ": " + e.getMessage());
-//                    }
-//                }
-//                respond(true, "2PC Reservation successful", responseObserver);
-//            } else {
-//                respond(false, "2PC Reservation failed (rolled back)", responseObserver);
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            respond(false, "2PC Reservation error: " + e.getMessage(), responseObserver);
-//        }
-//    }
-
     @Override
     public void reserveWithAfterParty(ReserveRequest request, StreamObserver<ReservationResponse> responseObserver) {
 
@@ -587,7 +314,7 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
             try {
                 String leaderAddress = leaderElection.getLeaderAddress();
                 if (leaderAddress == null) {
-                    respond(false, "❌ Leader unavailable. Try again.", responseObserver);
+                    respond(false, "Leader unavailable. Try again.", responseObserver);
                     return;
                 }
 
@@ -604,21 +331,21 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
 
             } catch (Exception ex) {
                 ex.printStackTrace();
-                respond(false, "❌ Error forwarding to leader: " + ex.getMessage(), responseObserver);
+                respond(false, "Error forwarding to leader: " + ex.getMessage(), responseObserver);
             } finally {
                 if (channel != null) {
-                    channel.shutdown(); // 🔐 Always shut down the channel
+                    channel.shutdown(); // Always shut down the channel
                 }
             }
             return;
         }
 
-        System.out.println("📡 [Node " + port + "] Handling reserveWithAfterParty for ID: " + request.getConcertId());
+        System.out.println("[Node " + port + "] Handling reserveWithAfterParty for ID: " + request.getConcertId());
 
         String userId = request.getUserId();
         String concertId = request.getConcertId();
         String seatTier = request.getSeatTier();
-        int numberOfTickets = request.getNumberOfTickets();  // ✅ NEW
+        int numberOfTickets = request.getNumberOfTickets();
 
         try {
             ConcertParticipant concertParticipant = new ConcertParticipant(concertStore);
@@ -639,7 +366,7 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
                         ReservationServiceGrpc.ReservationServiceBlockingStub stub =
                                 ReservationServiceGrpc.newBlockingStub(ch);
 
-                        // 🔁 Sync each individual reservation
+                        // Sync each individual reservation
                         for (int i = 0; i < numberOfTickets; i++) {
                             String idSuffix = "#" + i;
                             ReserveRequest individualRequest = ReserveRequest.newBuilder()
@@ -653,9 +380,9 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
                         }
 
                         ch.shutdown();
-                        System.out.println("📡 Synced 2PC reservation to: " + follower);
+                        System.out.println("Synced 2PC reservation to: " + follower);
                     } catch (Exception e) {
-                        System.err.println("⚠️ Failed to sync 2PC reservation to " + follower + ": " + e.getMessage());
+                        System.err.println("Failed to sync 2PC reservation to " + follower + ": " + e.getMessage());
                     }
                 }
 
@@ -705,7 +432,7 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
             ));
         }
 
-        System.out.println("🎯 Synced reservation: " + key);
+        System.out.println("Synced reservation: " + key);
         respond(true, "Reservation synced", responseObserver);
     }
 
@@ -732,7 +459,7 @@ public class ReservationServiceImpl extends ReservationServiceGrpc.ReservationSe
             }
         }
 
-        System.out.println("🗑️ Synced cancellation: " + key);
+        System.out.println("Synced cancellation: " + key);
         respond(true, "Cancel synced", responseObserver);
     }
 

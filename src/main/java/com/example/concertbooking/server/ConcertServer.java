@@ -21,7 +21,7 @@ public class ConcertServer {
     private Server server;
 
     public void start(int port) throws Exception {
-        // ✅ Shared concert store
+        // Shared concert store
         Map<String, Concert> concertStore = new ConcurrentHashMap<>();
         Map<String, Reservation> reservations = new ConcurrentHashMap<>();
 
@@ -35,7 +35,7 @@ public class ConcertServer {
         etcdClient.registerNodeWithLease(nodeId, nodeAddress);
 
         List<String> nodes = etcdClient.getRegisteredNodes();
-        System.out.println("🎯 Nodes currently registered in etcd:");
+        System.out.println("Nodes currently registered in etcd:");
         nodes.forEach(addr -> System.out.println(" - " + addr));
 
         // Re-sync from leader if this node is a follower
@@ -64,9 +64,9 @@ public class ConcertServer {
                     }
                     ch2.shutdown();
 
-                    System.out.println("🔄 Re-sync completed from leader: " + leaderAddress);
+                    System.out.println("Re-sync completed from leader: " + leaderAddress);
                 } catch (Exception e) {
-                    System.err.println("⚠️ Re-sync failed: " + e.getMessage());
+                    System.err.println("Re-sync failed: " + e.getMessage());
                 }
             }
         }
@@ -95,19 +95,6 @@ public class ConcertServer {
             server.shutdown();
         }
     }
-
-//    public static void main(String[] args) throws Exception {
-//        int port = 50051;
-//        if (args.length > 0) {
-//            try {
-//                port = Integer.parseInt(args[0]);
-//            } catch (NumberFormatException e) {
-//                System.err.println("Invalid port passed. Falling back to default port 50051.");
-//            }
-//        }
-//
-//        new ConcertServer().start(port);
-//    }
 
     public static void main(String[] args) throws Exception {
         int port = 50051; // Default

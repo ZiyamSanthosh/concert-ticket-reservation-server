@@ -39,7 +39,7 @@ public class EtcdHelper {
             }
 
         } catch (Exception e) {
-            System.err.println("❌ Error retrieving etcd nodes: " + e.getMessage());
+            System.err.println("Error retrieving etcd nodes: " + e.getMessage());
         }
         return others;
     }
